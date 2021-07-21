@@ -38,7 +38,7 @@ namespace rpkg
                 // TODO: Use the mmf, not cmd-line arguments for passing the parent hwnd
                 //Arguments = WinuserGetWindowLongPtr(hwndParent.Handle, WINUSER_GCW_ATOM).ToString(),
                 Arguments = hwndParent.Handle.ToString(),
-                RedirectStandardOutput = true,
+                RedirectStandardOutput = false,
                 //CreateNoWindow = true
             };
 
@@ -105,7 +105,7 @@ namespace rpkg
                 //WinuserSetParent(newProcPtr, hwndParent.Handle);
 
                 // Update window
-                UpdateWindowPos();
+                //UpdateWindowPos();
 
                 // Return handle to created process
                 return new HandleRef(this, newProcPtr);

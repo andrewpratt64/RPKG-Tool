@@ -8,6 +8,8 @@
 #include <G3D/G3D.h>
 #include <string>
 #include <string_view>
+#include <windows.h>
+#include <commctrl.h>
 #include <unordered_map>
 
 /**
@@ -16,6 +18,12 @@
  */
 class App : public GApp {
 private:
+    /** Handle to the app window */
+    HWND m_hAppWin;
+
+    /** Handle to the window header */
+    HWND m_hHeader;
+
     /** Raw pointer to the current scene for convenience */
     Scene* m_scene;
     /**
@@ -75,5 +83,39 @@ public:
     virtual bool onEvent(const GEvent& e) override;
     virtual void onUserInput(UserInput* ui) override;
     virtual void onCleanup() override;
+#pragma endregion
+
+
+#pragma region gui
+
+protected:
+
+    /**
+     * @brief Setup all win32-related gui
+     * 
+     * @return True if everything was setup correctly, false otherwise
+    */
+    bool setupWin32Gui();
+
+    /**
+     * @brief Create a header control for the window
+     * 
+     * @param hParent Handle to the parent of the header
+     * @return HWND to the header
+    */
+    HWND createWin32Header(HWND hParent);
+
+
+    /**
+     * @brief Insert an item into the header control
+     *
+     * @param hHeader Handle to the header control
+     * @param insertAfter Index of the item to insert the new item after
+     * @param w Width of the new item
+     * @param Address 
+     * @return Index of the inserted item
+    */
+    int win32HeaderInsertItem(HWND hHeader, const int insertAfter, const int w, LPTSTR lpsz);
+
 #pragma endregion
 };

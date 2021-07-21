@@ -4,12 +4,17 @@
 #include <string>
 #include <sstream>
 #include <windows.h>
+#include <commctrl.h>
 
 #include "GLFW/glfw3.h"
 #define GLFW_EXPOSE_NATIVE_WIN32
 #define GLFW_EXPOSE_NATIVE_WGL
 #include "GLFW/glfw3native.h"
 
+
+// Typedefs for convenience
+typedef INITCOMMONCONTROLSEX InitCommonControlsExStruct;
+typedef LPINITCOMMONCONTROLSEX LPInitCommonControlsExStruct;
 
 
 // Tells C++ to invoke command-line main() function even on OS X and Win32.
@@ -30,9 +35,7 @@ int main(int argc, const char* argv[])
 
 
     // Window size
-    settings.window.fullScreen = false;
-    settings.window.resizable = true;
-    /*if (settings.window.fullScreen)
+    if (settings.window.fullScreen)
     {
         settings.window.width = 1920;
         settings.window.height = 1080;
@@ -48,7 +51,7 @@ int main(int argc, const char* argv[])
         settings.window.height -= settings.window.height & 1;
     }
     settings.window.resizable = !settings.window.fullScreen;
-    settings.window.framed = settings.window.resizable;*/
+    settings.window.framed = settings.window.resizable;
 
 
     // Set to true for a significant performance boost if your app can't
@@ -85,13 +88,18 @@ int main(int argc, const char* argv[])
     settings.screenCapture.filenamePrefix = "G2MapMaker_";
 
 
-    // Window should be invisible at first
-    settings.window.visible = false;
+    // Window should be visible
+    settings.window.visible = true;
 
-    // No window frame
-    settings.window.framed = false;
+    // Window frame
+    settings.window.framed = true;
 
-    settings.window.alwaysOnTop = true;
+    settings.window.hardware = true;
+    settings.window.sharedContext = false;
+    settings.window.stencilBits = 0;
+    settings.window.stereo = false;
+
+    settings.useDeveloperTools = true;
 
     // Run the app
     return App(settings).run();
@@ -99,8 +107,12 @@ int main(int argc, const char* argv[])
 
 
 App::App(const GApp::Settings& settings) :
-    GApp(settings, GLFWWindow::create(settings.window))
+    GApp(settings, GLFWWindow::create(settings.window)),
+    m_scene{nullptr}
 {
+    /*
+    // Don't manage user input
+    //manageUserInput = false;
 
     // Declare name of mutex object for mmf access
     constexpr LPCWSTR MMF_MUTEX_NAME{ L"rpkg_G3dHwndHost_mutex" };
@@ -144,7 +156,6 @@ App::App(const GApp::Settings& settings) :
     assert(GetWindowRect(parentHwnd, &parentRect));
     
     // Update the child window position and scale
-    
     //glfwSetWindowSize(appWin, parentRect.right - parentRect.left, parentRect.bottom - parentRect.top);
     assert(MoveWindow(
         childHwnd,
@@ -169,35 +180,11 @@ App::App(const GApp::Settings& settings) :
         &childHwndInt, sizeof(uint64_t)
     );
     
-    /*
-    // Decalre an array of bytes to hold the data
-    uint8_t mmfBytes[16] = {0};
-    // Set the first byte to 1 to show this process has handled the file
-    mmfBytes[0] = 1;
-    // Get the hwnd of the child window as an unsigned 64bit integer
-    auto childHwndInt{ reinterpret_cast<uint64_t>(childHwnd) };
-    // Insert the data of that integer into the array
-    for (int i{ 0 }; i < 8; ++i)
-    {
-        void* bytePtr{ &childHwndInt + i };
-        //mmfBytes[1 + i] = reinterpret_cast<unsigned char>();
-        //mmfBytes[1 + i] = *static_cast<unsigned char*>(bytePtr);
-        mmfBytes[1 + i] = *reinterpret_cast<uint8_t*>(&childHwndInt + i);
-    }
-    memcpy(mmfView, mmfBytes, 16);
-    msgBox(G3D::String{ std::to_string(childHwndInt) });
-    std::string foo{ "" };
-    for (auto& bar : mmfBytes)
-    {
-        foo += std::to_string(bar) + ", ";
-    }
-    msgBox(G3D::String(foo));
-    */
-    
 
     // Close the mmf and the mutex as we're done with them
     CloseHandle(hMmf);
     CloseHandle(mmfMutex);
+    */
 }
 
 
@@ -236,8 +223,18 @@ void App::onInit()
 
     //setFrameDuration(1.0f / 240.0f);
     
+    // Get the app's window
+    auto* appWin{ GLFWWindow::getMasterWindowPtr() };
+
+    // Get the win32 handle of the child and store it
+    m_hAppWin = glfwGetWin32Window(appWin);
+    assert(m_hAppWin != NULL);
+    
     // Show/don't show rendering stats
     showRenderingStats = false;
+
+    // Don't simulate 3d environment
+    setSimulationTimeScale(0.0f);
     
     // Setup scene
     initScene();
@@ -254,51 +251,20 @@ void App::onInit()
 }
 
 
-// TODO: Shouldn't be able to drag toolbar
 void App::makeGUI()
 {
-    return;
     // Load icons
     // Using the Tango Icon Library: https://en.wikipedia.org/wiki/Tango_Desktop_Project
-    shared_ptr<IconSet> icons = IconSet::fromFile(System::findDataFile("tango.icn"));
+    //shared_ptr<IconSet> icons = IconSet::fromFile(System::findDataFile("tango.icn"));
 
-    //  HEADER
-    const shared_ptr<GuiWindow>& guiHeader{ GuiWindow::create(
-        // Title
-        "header",
-        // Theme
-        shared_ptr<GuiTheme>(),
-        // Position & Size
-        Rect2D::xywh(0.0f, 0.0f, static_cast<float>(window()->width()), 50.0f),
-        // Style
-        GuiTheme::PANEL_WINDOW_STYLE
-    ) };
-    GuiPane* guiHeaderPane{ guiHeader->pane() };
+    // Do setup
+    assert(setupWin32Gui());
 
-    guiHeaderPane->addButton("File", GuiTheme::ButtonStyle::NORMAL_BUTTON_STYLE);
-    
-    addWidget(guiHeader);
-    //m_fullwidthGuiCollection["header"] = std::dynamic_pointer_cast<GuiControl>(guiHeader);
-    m_fullwidthGuiCollection["header"] = guiHeader.get();
-
-
-    //  TOOLBAR
-    const shared_ptr<GuiWindow>& guiToolbar{ GuiWindow::create(
-        // Title
-        "toolbar",
-        // Theme
-        shared_ptr<GuiTheme>(),
-        // Position & Size
-        Rect2D::xywh(0.0f, 50.0f, static_cast<float>(window()->width()), 50.0f),
-        // Style
-        GuiTheme::TOOL_WINDOW_STYLE
-    ) };
-    GuiPane* guiToolbarPane{ guiToolbar->pane() };
-
-    guiToolbarPane->addButton(icons->get("22x22/uwe/CreateBox.png"), [this]() { this->onClick_AddCube(); }, GuiTheme::TOOL_BUTTON_STYLE);
-
-    addWidget(guiToolbar);
-    m_fullwidthGuiCollection["toolbar"] = guiToolbar.get();
+    // Create header
+    m_hHeader = createWin32Header(m_hAppWin);
+    auto foo{ SendMessage(m_hHeader, HDM_GETITEMCOUNT, 0, 0) };
+    win32HeaderInsertItem(m_hHeader, 0, 50, L"Rocco");
+    auto bar{ SendMessage(m_hHeader, HDM_GETITEMCOUNT, 0, 0) };
 }
 
 
@@ -308,7 +274,7 @@ void App::initScene()
     loadScene("data-files/scenes/empty.Scene.Any");
     // Get a pointer to the loaded scene
     m_scene = scene().get();
-
+    
     // Allow the scene to be edited
     m_scene->setEditing(true);
 }
@@ -432,4 +398,93 @@ void App::onCleanup()
 {
     // Called after the application loop ends.  Place a majority of cleanup code
     // here instead of in the constructor so that exceptions can be caught.
+}
+
+
+
+
+bool App::setupWin32Gui()
+{
+    // Setup common controls from Comctl32.dll
+    InitCommonControlsExStruct icex;
+    icex.dwSize = sizeof(InitCommonControlsExStruct);
+    icex.dwICC = ICC_WIN95_CLASSES;
+    return InitCommonControlsEx(&icex);;
+}
+
+
+HWND App::createWin32Header(HWND hParent)
+{
+    // Declare the child window identifier for the header window
+    long long ID_HEADER{-1};
+
+    // Create the header window
+    HWND hHeader{ CreateWindowEx(
+        // Extended window style
+        0,
+        // Window class
+        WC_HEADER,
+        // Window name
+        LPCTSTR{NULL},
+        // Window style
+        WS_CHILD | WS_BORDER | HDS_BUTTONS | HDS_HORZ,
+        // X, Y, Width, Height
+        0, 0, 0, 0,
+        // Window parent
+        hParent,
+        // Child window identifier
+        reinterpret_cast<HMENU>(ID_HEADER),
+        // Module
+        GetModuleHandle(NULL),
+        // Win32 lpParam
+        NULL
+    ) };
+
+    // Return null if the header window wasn't created
+    if (hHeader == NULL)
+        return HWND{ NULL };
+
+    // Get the correct header layout
+    HDLAYOUT layout{};
+    WINDOWPOS headerPos{};
+    layout.pwpos = &headerPos;
+    RECT rcParent{};
+    GetClientRect(hParent, &rcParent);
+    layout.prc = &rcParent;
+    Header_Layout(hHeader, &layout);
+
+    auto foo{ (layout.pwpos->flags | SWP_SHOWWINDOW) & ~SWP_DRAWFRAME };
+    auto bar{ SWP_DRAWFRAME };
+
+    // Set the header position/scale/etc.
+    // Return null if it couldn't be set
+    if (SetWindowPos(
+        hHeader,
+        layout.pwpos->hwndInsertAfter,
+        layout.pwpos->x,
+        layout.pwpos->y,
+        layout.pwpos->cx,
+        layout.pwpos->cy,
+        (layout.pwpos->flags & ~SWP_DRAWFRAME) | SWP_SHOWWINDOW
+    ) == NULL)
+        return HWND{ NULL };
+
+    // Return a HWND to the header
+    return hHeader;
+}
+
+
+int App::win32HeaderInsertItem(HWND hHeader, const int insertAfter, const int w, LPTSTR lpsz)
+{
+    // Declare the new header item
+    HDITEM newItem;
+
+    // Setup item
+    newItem.mask = HDI_TEXT | HDI_FORMAT | HDI_WIDTH;
+    newItem.cxy = w;
+    newItem.pszText = lpsz;
+    newItem.cchTextMax = sizeof(newItem.pszText) / sizeof(newItem.pszText[0]);
+    newItem.fmt = HDF_CENTER | HDF_STRING;
+
+    return static_cast<int>(SendMessage(hHeader, HDM_INSERTITEM, static_cast<WPARAM>(insertAfter), reinterpret_cast<LPARAM>(&newItem)));
 }
