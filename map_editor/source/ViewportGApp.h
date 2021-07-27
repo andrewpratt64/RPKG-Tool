@@ -1,37 +1,49 @@
 /**
-  \file App.h
+  \file ViewportGApp.h
 
-  The G3D 10.00 default starter app is configured for OpenGL 4.1 and
-  relatively recent GPUs.
+  Subclass of G3D::GApp for the 3d viewport
  */
 #pragma once
+
+#ifndef WIN32_LEAN_AND_MEAN
+#define WIN32_LEAN_AND_MEAN
+#endif // !WIN32_LEAN_AND_MEAN
+
 #include <G3D/G3D.h>
 #include <string>
 #include <string_view>
 #include <windows.h>
-#include <commctrl.h>
-#include <unordered_map>
+//#include <commctrl.h>
+#include <shellapi.h>
 
-/**
- * @brief Application framework
- * @author Andrew Pratt
- */
-class App : public GApp {
+#include "GLFW/glfw3.h"
+#ifndef GLFW_EXPOSE_NATIVE_WIN32
+#define GLFW_EXPOSE_NATIVE_WIN32
+#endif
+#ifndef GLFW_EXPOSE_NATIVE_WGL
+#define GLFW_EXPOSE_NATIVE_WGL
+#endif
+#include "GLFW/glfw3native.h"
+
+#include "MapEditorViewportWindow.h"
+
+
+ /**
+  * @brief Viewport app
+  * @author Andrew Pratt
+  */
+class ViewportGApp : public GApp {
 private:
-    /** Handle to the app window */
+    /** Handle to the main app window */
     HWND m_hAppWin;
 
-    /** Handle to the window header */
-    HWND m_hHeader;
+    /** Thread for running the viewport's main loop */
+    std::thread m_viewportThread;
 
+    /** Raw pointer to the viewport g3d window */
+    MapEditorViewportWindow* m_viewportWin;
     /** Raw pointer to the current scene for convenience */
     Scene* m_scene;
-    /**
-     * @brief Collection of all gui elements who's width should span it's parent
-     * 
-     * TODO: This shouldn't be needed. Also the raw pointer will not work if any addresses move
-     */
-    std::unordered_map<std::string_view, GuiWindow*> m_fullwidthGuiCollection;
 
 protected:
 
@@ -52,15 +64,20 @@ protected:
 
 public:
     // Constructor
-    App(const GApp::Settings& settings = GApp::Settings());
+    ViewportGApp(HWND hAppWin, const GApp::Settings& settings = GApp::Settings());
+
+
+    /** @brief Wait for the viewport thread to stop */
+    void waitForViewportToStop();
+
 
     /**
      * @brief Get a unique version of a desired entity name, if it isn't already unique
-     * 
+     *
      * @param name Desired entity name
      * @return Desired name of the entity, which may be modified to ensure it's unique
      * @warning Assumes m_scene has been initialized and is valid
-     * 
+     *
      * @throw std::overflow_error If too many entities have the same desired name, probably will never happen unless you have
      *      over 18,446,744,073,709,551,615 entities with the same name
      */
@@ -68,6 +85,10 @@ public:
 
     // Method overrides
 #pragma region overrides
+    // Basically overrides of non-virtual methods GApp::run() and GApp::onRun(), respectively
+    int runViewport();
+    void onRunViewport();
+
     virtual void onInit() override;
     virtual void onAI() override;
     virtual void onNetwork() override;
@@ -83,39 +104,5 @@ public:
     virtual bool onEvent(const GEvent& e) override;
     virtual void onUserInput(UserInput* ui) override;
     virtual void onCleanup() override;
-#pragma endregion
-
-
-#pragma region gui
-
-protected:
-
-    /**
-     * @brief Setup all win32-related gui
-     * 
-     * @return True if everything was setup correctly, false otherwise
-    */
-    bool setupWin32Gui();
-
-    /**
-     * @brief Create a header control for the window
-     * 
-     * @param hParent Handle to the parent of the header
-     * @return HWND to the header
-    */
-    HWND createWin32Header(HWND hParent);
-
-
-    /**
-     * @brief Insert an item into the header control
-     *
-     * @param hHeader Handle to the header control
-     * @param insertAfter Index of the item to insert the new item after
-     * @param w Width of the new item
-     * @param Address 
-     * @return Index of the inserted item
-    */
-    int win32HeaderInsertItem(HWND hHeader, const int insertAfter, const int w, LPTSTR lpsz);
-
 #pragma endregion
 };

@@ -107,12 +107,15 @@
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClInclude Include="MapEditorViewportWindow.h" />
-    <ClInclude Include="source\App.h" />
+    <ClInclude Include="source\MapEditorApp.h" />
+    <ClInclude Include="source\MapEditorViewportWindow.h" />
+    <ClInclude Include="source\ViewportGApp.h" />
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="MapEditorViewportWindow.cpp" />
-    <ClCompile Include="source\App.cpp" />
+    <ClCompile Include="source\main.cpp" />
+    <ClCompile Include="source\MapEditorApp.cpp" />
+    <ClCompile Include="source\MapEditorViewportWindow.cpp" />
+    <ClCompile Include="source\ViewportGApp.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="resources.rc" />
@@ -120,6 +123,9 @@
   <ItemGroup>
     <None Include="data-files\empty.Scene.Any" />
     <None Include="journal\journal.md.html" />
+  </ItemGroup>
+  <ItemGroup>
+    <Image Include="data-files\icons\map_editor.ico" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
