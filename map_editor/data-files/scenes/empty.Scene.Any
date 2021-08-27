@@ -1,7 +1,7 @@
 
 /* -*- c++ -*- */
 { 
-    name = "EmptyEditorScene";
+    name = "_map_editor_EmptyEditorScene";
     description = "";
 	defaultCamera = "editorCamera";
 	

@@ -1,5 +1,14 @@
 #include "MapEditorApp.h"
+#include <sstream>
+#include <windows.h>
+#include <shellapi.h>
+#include <commctrl.h>
 #include <cassert>
+#include <strsafe.h>
+
+// TODO: throw "ERROR";    <- this is lazy
+
+using namespace MapEditor;
 
 
 
@@ -9,6 +18,17 @@ MapEditorApp::MapEditorApp(HINSTANCE hInstance) :
 {
     // Make sure handle to instance is valid
     assert(m_hInstance);
+
+    // Get the path to the running exe
+    TCHAR moduleFileNameStr[MAX_PATH];
+    ZeroMemory(moduleFileNameStr, MAX_PATH);
+    auto moduleFileNameStrLen{ GetModuleFileName(NULL, moduleFileNameStr, MAX_PATH) };
+    if (moduleFileNameStrLen == 0)
+    {
+        showLastErrorMsg();
+        throw "ERROR";
+    }
+    m_exePath = moduleFileNameStr;
 
     // Create main window
     createWin32MainWindow();
@@ -98,16 +118,11 @@ LRESULT MapEditorApp::MainWinProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lP
 
 WPARAM MapEditorApp::run()
 {
-    WPARAM exitCode;
-    std::thread foo{ [this, &exitCode]() {exitCode = startMainLoop(); } };
-    startViewport();
-    foo.join();
-
     // Create and start the 3d viewport
-    //startViewport();
+    startViewport();
 
     // Enter main message loop and get it's exit code when it's finished
-    //WPARAM exitCode{ startMainLoop() };
+    WPARAM exitCode{ startMainLoop() };
 
     // Wait for the viewport to stop
     waitForViewportToStop();
@@ -117,8 +132,53 @@ WPARAM MapEditorApp::run()
 }
 
 
+bool MapEditor::MapEditorApp::showLastErrorMsg()
+{
+    // Get the last error code
+    DWORD errCode{ GetLastError() };
+
+    // Allocate a string buffer to hold the error message
+    LPTSTR lpErrMsgBuffer{ nullptr };
+
+    // Get the formatted error message
+    if (FormatMessage(
+        // Formatting flags
+        FORMAT_MESSAGE_ALLOCATE_BUFFER | FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_IGNORE_INSERTS,
+        // Ignored argument
+        NULL,
+        // Error code to format
+        errCode,
+        // Language to use
+        MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT),
+        // Buffer to store formatted string in
+        reinterpret_cast<LPTSTR>(&lpErrMsgBuffer),
+        // Min number of chars to allocate
+        0,
+        // Ignored argument
+        NULL
+    ) == 0)
+    {
+        // Display a less-helpful error if formatting the error message failed
+        std::wostringstream errMsgStream;
+        errMsgStream << L"Error code " << errCode << L". Failed to get formatted error message, raised error " << GetLastError() << L" while formatting";
+        //std::wstring errMsg;
+        //errMsgStream.str(errMsg);
+        MessageBox(NULL, static_cast<LPCWSTR>(errMsgStream.str().c_str()), L"ERROR", MB_OK | MB_ICONERROR | MB_TASKMODAL);
+    }
+    else
+        // Display error message
+        MessageBox(NULL, static_cast<LPCWSTR>(lpErrMsgBuffer), L"ERROR", MB_OK | MB_ICONERROR | MB_TASKMODAL);
+
+    
+
+    return true;
+}
+
+
 WPARAM MapEditorApp::startMainLoop()
 {
+    setupWin32Gui();
+
     MSG msg;
     BOOL bReturn;
 
@@ -128,6 +188,7 @@ WPARAM MapEditorApp::startMainLoop()
         // Handle errors
         if (bReturn == -1)
         {
+            showLastErrorMsg();
             throw "ERROR";
         }
         // Handle messages
@@ -145,95 +206,68 @@ WPARAM MapEditorApp::startMainLoop()
 
 void MapEditorApp::startViewport()
 {
-    //  == App Settings ==
-    ViewportGApp::Settings settings(NULL, NULL);
+    // Set an environment variable so the viewport knows the class name of the main parent window
+    //SetEnvironmentVariable(WIN_ENVIRO_VAR_NAME_PARENT_HWND, WIN_PROP_NAME_INSTANCE_PTR);
 
-
-    // Window caption
-    settings.window.caption = "Map Editor";
-
-
-    // Set enable to catch more OpenGL errors
-    settings.window.debugContext = true;
-
-
-    // Window size
-    if (settings.window.fullScreen)
+    // Set environment variables so the viewport knows the parent directory of the exe
+    auto exePath{ m_exePath.parent_path() };
+    if (SetEnvironmentVariable(WIN_ENVIRO_VAR_NAME_EXE_DIR, static_cast<LPCWSTR>(exePath.c_str())) == 0)
     {
-        settings.window.width = 1920;
-        settings.window.height = 1080;
+        showLastErrorMsg();
+        throw "ERROR";
     }
-    else
+
+    // Setup an instance of the startup info structure
+    STARTUPINFO startupInfo;
+    ZeroMemory(&startupInfo, sizeof(startupInfo));
+    // Size of startup info in memory
+    startupInfo.cb = sizeof(startupInfo);
+
+    // Setup an instance of the proccess info structure
+    ZeroMemory(&m_viewportAppProc, sizeof(m_viewportAppProc));
+
+    // Start the child process
+    if (!CreateProcess(
+        // Process module name
+        (m_exePath.parent_path() / EXE_NAME_VIEWPORT).wstring().c_str(),
+        // Command line
+        NULL,
+        // Process handle inheritance
+        NULL,
+        // Thread handle inheritance
+        NULL,
+        // Inherit all possible handles?
+        true,
+        // Creation flags
+        0,
+        // Environment block (NULL uses parent's)
+        NULL,
+        // Starting directory (NULL uses parent's)
+        NULL,
+        // Startup info
+        &startupInfo,
+        // Process info
+        &m_viewportAppProc
+    ))
     {
-        settings.window.height = int(OSWindow::primaryDisplayWindowSize().y * 0.95f);
-        // Constrain ultra widescreen aspect ratios
-        settings.window.width = min(settings.window.height * 1920 / 1080, int(OSWindow::primaryDisplayWindowSize().x * 0.95f));
-
-        // Make even
-        settings.window.width -= settings.window.width & 1;
-        settings.window.height -= settings.window.height & 1;
+        // Bail if process failed to start
+        showLastErrorMsg();
+        throw "ERROR";
     }
-    settings.window.resizable = !settings.window.fullScreen;
-    settings.window.framed = settings.window.resizable;
 
 
-    // Set to true for a significant performance boost if your app can't
-    // render at the display frequency, or if you *want* to render faster
-    // than the display.
-    settings.window.asynchronous = true;
-
-
-    // Render slightly larger than the screen so that screen-space refraction, bloom,
-    // screen-space AO, and screen-space reflection to look good at screen edges. Set to zero for
-    // maximum performance and free memory. Increase the second argument to improve AO without affecting
-    // color. The third argument is the resolution. Set to 0.5f to render at half-res and upscale,
-    // 2.0f to supersample.
-    settings.hdrFramebuffer.setGuardBandsAndSampleRate(0, 0, 1.0f);
-    settings.renderer.deferredShading = false;
-    settings.renderer.orderIndependentTransparency = true;
-
-
-    // Directory containing map editor-specific data
-    settings.dataDir = FilePath::concat(FileSystem::currentDirectory(), "data-files");
-
-    // Window icon
-    settings.window.defaultIconFilename = "data-files/icons/icon.png";
-
-
-    // Setup screen capture
-    settings.screenCapture.outputDirectory = FilePath::concat(FileSystem::currentDirectory(), "../journal");
-    if (!FileSystem::exists(settings.screenCapture.outputDirectory))
-    {
-        settings.screenCapture.outputDirectory = "";
-    }
-    settings.screenCapture.includeAppRevision = true;
-    settings.screenCapture.includeG3DRevision = false;
-    settings.screenCapture.filenamePrefix = "G2MapMaker_";
-
-
-    // Window should not be visible at first
-    settings.window.visible = false;
-
-    // Window frame
-    settings.window.framed = true;
-
-    settings.window.hardware = true;
-    settings.window.sharedContext = false;
-    settings.window.stencilBits = 0;
-    settings.window.stereo = false;
-
-    settings.useDeveloperTools = true;
-
-    // Create and run the viewport app
-    m_viewportApp = std::make_unique<ViewportGApp>(m_hAppWin, settings);
-    m_viewportApp->runViewport();
 }
 
 
 int MapEditorApp::waitForViewportToStop()
 {
-    // Wait for the G3D app to finish
-    m_viewportApp->waitForViewportToStop();
+    // Wait for the viewport process to stop
+    WaitForSingleObject(m_viewportAppProc.hProcess, INFINITE);
+
+    // Close the process handles
+    CloseHandle(m_viewportAppProc.hProcess);
+    CloseHandle(m_viewportAppProc.hThread);
+    
     // Return the app's return value
     //return m_viewportReturnVal;
     return EXIT_SUCCESS;
@@ -246,8 +280,8 @@ bool MapEditorApp::setupWin32Gui()
     assert(IsGUIThread(true) != ERROR_NOT_ENOUGH_MEMORY);
 
     // Setup common controls from Comctl32.dll
-    InitCommonControlsExStruct icex;
-    icex.dwSize = sizeof(InitCommonControlsExStruct);
+    INITCOMMONCONTROLSEX icex;
+    icex.dwSize = sizeof(INITCOMMONCONTROLSEX);
     icex.dwICC = ICC_WIN95_CLASSES;
     return InitCommonControlsEx(&icex);;
 }
@@ -281,7 +315,7 @@ HWND MapEditorApp::createWin32MainWindow()
     // Menu resource name
     wcxAppMain.lpszMenuName = L"MapEditorMainWinMenu";
     // Window class name
-    wcxAppMain.lpszClassName = L"MapEditorMainWin";
+    wcxAppMain.lpszClassName = MAIN_CLASS_NAME;
     // Small window icon
     // TODO: Don't use the same icon as the large window icon
     wcxAppMain.hIconSm = m_hAppWinIcon;
@@ -294,7 +328,7 @@ HWND MapEditorApp::createWin32MainWindow()
         // Extended window style
         0,
         // Window class
-        L"MapEditorMainWin",
+        MAIN_CLASS_NAME,
         // Window name
         L"Map Editor",
         // Window style

@@ -19,14 +19,14 @@
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'" Label="Configuration">
-    <ConfigurationType>Application</ConfigurationType>
+    <ConfigurationType>StaticLibrary</ConfigurationType>
     <UseDebugLibraries>true</UseDebugLibraries>
     <CharacterSet>Unicode</CharacterSet>
     <PlatformToolset>v142</PlatformToolset>
     <PreferredToolArchitecture>x64</PreferredToolArchitecture>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'" Label="Configuration">
-    <ConfigurationType>Application</ConfigurationType>
+    <ConfigurationType>StaticLibrary</ConfigurationType>
     <UseDebugLibraries>false</UseDebugLibraries>
     <WholeProgramOptimization>true</WholeProgramOptimization>
     <CharacterSet>Unicode</CharacterSet>
@@ -77,8 +77,12 @@
       <AdditionalDependencies>comctl32.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
     <PostBuildEvent>
-      <Command>xcopy /e /i /y $(ProjectDir)data-files $(SolutionDir)_build\$(Configuration)\data-files</Command>
+      <Command>xcopy /e /i /y $(ProjectDir)data-files $(SolutionDir)_build\$(Configuration)\data-files
+copy /v /y $(OutDir)$(TargetName)$(TargetExt) $(MSBuildProjectDirectory)\$(TargetName)$(TargetExt)</Command>
     </PostBuildEvent>
+    <Lib>
+      <AdditionalDependencies>comctl32.lib;%(AdditionalDependencies)</AdditionalDependencies>
+    </Lib>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <ClCompile>
@@ -103,16 +107,20 @@
       <AdditionalDependencies>comctl32.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
     <PostBuildEvent>
-      <Command>xcopy /e /i /y $(ProjectDir)data-files $(SolutionDir)_build\$(Configuration)\data-files</Command>
+      <Command>xcopy /e /i /y $(ProjectDir)data-files $(SolutionDir)_build\$(Configuration)\data-files
+copy /v /y $(OutDir)$(TargetName)$(TargetExt) $(MSBuildProjectDirectory)\$(TargetName)$(TargetExt)</Command>
     </PostBuildEvent>
+    <Lib>
+      <AdditionalDependencies>comctl32.lib;%(AdditionalDependencies)</AdditionalDependencies>
+    </Lib>
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClInclude Include="source\MapEditorApp.h" />
     <ClInclude Include="source\MapEditorViewportWindow.h" />
+    <ClInclude Include="source\str_maybe_unicode.h" />
     <ClInclude Include="source\ViewportGApp.h" />
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="source\main.cpp" />
     <ClCompile Include="source\MapEditorApp.cpp" />
     <ClCompile Include="source\MapEditorViewportWindow.cpp" />
     <ClCompile Include="source\ViewportGApp.cpp" />
@@ -121,7 +129,7 @@
     <ResourceCompile Include="resources.rc" />
   </ItemGroup>
   <ItemGroup>
-    <None Include="data-files\empty.Scene.Any" />
+    <None Include="data-files\scenes\empty.Scene.Any" />
     <None Include="journal\journal.md.html" />
   </ItemGroup>
   <ItemGroup>

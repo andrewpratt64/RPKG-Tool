@@ -10,9 +10,6 @@
     <ClCompile Include="source\MapEditorApp.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="source\main.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="source\MapEditorViewportWindow.h">
@@ -24,13 +21,16 @@
     <ClInclude Include="source\MapEditorApp.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="source\str_maybe_unicode.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="resources.rc" />
   </ItemGroup>
   <ItemGroup>
     <None Include="journal\journal.md.html" />
-    <None Include="data-files\empty.Scene.Any">
+    <None Include="data-files\scenes\empty.Scene.Any">
       <Filter>Data Files\Scenes</Filter>
     </None>
   </ItemGroup>

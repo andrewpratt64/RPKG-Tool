@@ -30,10 +30,10 @@ protected:
 	HWND m_hWin;
 
 public:
-	
+
 	// NOTE: At least for now, the settings argument is completely ignored
-	MapEditorViewportWindow::MapEditorViewportWindow(const OSWindow::Settings& settings);
-	MapEditorViewportWindow::~MapEditorViewportWindow();
+	MapEditorViewportWindow(const OSWindow::Settings& settings);
+	~MapEditorViewportWindow();
 
 
 	/**
@@ -45,7 +45,7 @@ public:
 
 
 	// Copied from G3D::GLFWWindow::getMouseButtonState
-	void MapEditorViewportWindow::getMouseButtonState(uint8& mouseButtons) const;
+	void getMouseButtonState(uint8& mouseButtons) const;
 
 
 	// Inherited via OSWindow

@@ -12,6 +12,7 @@
 #include <G3D/G3D.h>
 #include <string>
 #include <string_view>
+#include <filesystem>
 #include <windows.h>
 //#include <commctrl.h>
 #include <shellapi.h>
@@ -45,6 +46,9 @@ private:
     /** Raw pointer to the current scene for convenience */
     Scene* m_scene;
 
+    /** Fully qualified path to the running exe (for the viewport process) */
+    std::filesystem::path m_exePath;
+
 protected:
 
     /** Called from onInit */
@@ -64,7 +68,7 @@ protected:
 
 public:
     // Constructor
-    ViewportGApp(HWND hAppWin, const GApp::Settings& settings = GApp::Settings());
+    ViewportGApp(HWND hAppWin, std::filesystem::path&& exePath, const GApp::Settings& settings = GApp::Settings());
 
 
     /** @brief Wait for the viewport thread to stop */

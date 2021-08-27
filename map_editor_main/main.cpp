@@ -6,14 +6,18 @@
 #define WIN32_LEAN_AND_MEAN
 #endif // !WIN32_LEAN_AND_MEAN
 
+#ifndef UNICODE
+#define UNICODE
+#endif // !UNICODE
+
 #include <windows.h>
 
 #include "MapEditorApp.h"
 
 
 // Entry point for application
-int APIENTRY WinMain(HINSTANCE hInstance, HINSTANCE hInstancePrev, LPSTR cmdline, int cmdShow)
+int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hInstancePrev, PWSTR cmdline, int cmdShow)
 {
 	// Create and run the editor app, then return it's exit code
-	return static_cast<int>(MapEditorApp{ hInstance }.run());
+	return static_cast<int>(MapEditor::MapEditorApp{ hInstance }.run());
 }

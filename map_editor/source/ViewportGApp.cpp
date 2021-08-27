@@ -9,19 +9,47 @@
 #include "MapEditorViewportWindow.h"
 
 
-ViewportGApp::ViewportGApp(HWND hAppWin, const ViewportGApp::Settings& settings) :
+ViewportGApp::ViewportGApp(HWND hAppWin, std::filesystem::path&& exePath, const ViewportGApp::Settings& settings) :
     GApp(settings, (m_viewportWin = MapEditorViewportWindow::create(settings.window)), nullptr, true),
     m_hAppWin{ hAppWin },
-    m_scene{ nullptr }
+    m_scene{ nullptr },
+    m_exePath{ exePath }
 {
-    // Parent the viewport window to the main window
-    SetParent(m_viewportWin->getWin32Handle(), m_hAppWin);
+    // Catch exceptions
+    catchCommonExceptions = true;
+    // Let G3D take care of viewport input
+    manageUserInput = true;
 
-    // Make sure the viewport window is the one g3d renders to
-    renderDevice->setWindow(m_viewportWin);
+    // Get the win32 handle to the viewport window
+    HWND hViewportWin{ m_viewportWin->getWin32Handle() };
+
+    // Parent the viewport window to the main window
+    SetParent(hViewportWin, m_hAppWin);
+
+    // Configure the viewport window's style
+    SetWindowLong(hViewportWin, GWL_STYLE, WS_CHILD | (~(WS_TILEDWINDOW | WS_POPUP | WS_CAPTION)));
+
+    // Configure the viewport window's position
+    SetWindowPos(
+        // Window to position
+        hViewportWin,
+        // Ignored argument,
+        NULL,
+        // X, y, width, height
+        // TODO: Don't hardcode
+        0, 0, 100, 100,
+        // Flags
+        SWP_NOZORDER
+    );
 
     // Make the viewport visible
     m_viewportWin->show();
+
+    // Update the viewport window
+    assert(UpdateWindow(m_viewportWin->getWin32Handle()));
+
+    // Make sure the viewport window is the one g3d renders to
+    renderDevice->setWindow(m_viewportWin);
 }
 
 
@@ -120,18 +148,21 @@ void ViewportGApp::onRunViewport()
     beginRun();
     debugAssertGLOk();
 
-    do
+    /*do
     {
         oneFrame();
-    } while (!m_endProgram);
+    } while (!m_endProgram);*/
 
     // Start running the viewport in a seperate thread
-    /*m_viewportThread = std::thread{[this]() {
+    m_viewportThread = std::thread{[this]() {
         do
         {
             oneFrame();
         } while (!m_endProgram);
-    } };*/
+    } };
+
+    // Call post-run code
+    endRun();
 }
 
 
@@ -146,13 +177,13 @@ void ViewportGApp::onInit()
 
     // Show/don't show rendering stats
     showRenderingStats = false;
-
+    
     // Don't simulate 3d environment
     setSimulationTimeScale(0.0f);
-
+    msgBox("Yup");
     // Setup scene
     initScene();
-
+    msgBox("The");
     // Setup models
     ArticulatedModel::Specification spec;
     spec.filename = "models/primitive/cube.obj";
@@ -176,7 +207,8 @@ void ViewportGApp::makeGUI()
 void ViewportGApp::initScene()
 {
     // Load an empty scene from a file
-    loadScene("data-files/scenes/empty.Scene.Any");
+    //loadScene(G3D::String{ (m_exePath / "data-files/scenes/empty.Scene.Any").string() });
+    loadScene("_map_editor_EmptyEditorScene");
     // Get a pointer to the loaded scene
     m_scene = scene().get();
 
