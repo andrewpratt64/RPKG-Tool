@@ -297,7 +297,8 @@ HWND MapEditorApp::createWin32MainWindow()
     // Class size
     wcxAppMain.cbSize = sizeof(wcxAppMain);
     // Class style
-    wcxAppMain.style = CS_HREDRAW | CS_VREDRAW /* | CS_PARENTDC*/;
+    //wcxAppMain.style = CS_HREDRAW | CS_VREDRAW /* | CS_PARENTDC*/;
+    wcxAppMain.style = CS_HREDRAW | CS_VREDRAW | CS_PARENTDC;
     // Function pointer to winproc
     wcxAppMain.lpfnWndProc = MainWinProc;
     // Extra class size

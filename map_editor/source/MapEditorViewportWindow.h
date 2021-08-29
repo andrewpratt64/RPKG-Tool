@@ -14,7 +14,24 @@
 #define GLFW_EXPOSE_NATIVE_WGL
 #endif
 #include "GLFW/glfw3native.h"
+#ifndef GLEW_STATIC
+#define GLEW_STATIC
+#endif
+#include "GL/glew.h"
+#ifdef G3D_WINDOWS
+#    include "GL/wglew.h"
+#endif
+#define _GLFW_USE_CONFIG_H
 #include <windows.h>
+
+#include "MapEditorViewportWindowUserData.h"
+
+
+// Typedef for GLFW window object
+//	From: https://www.glfw.org/docs/3.3/group__window.html#ga3c96d80d363e67d13a41b5d1821f3242
+//	And from G3D::GLFWWindow
+//struct GLFWwindow;
+//typedef GLFWwindow GLFW_api_window;
 
 
  /**
@@ -26,6 +43,8 @@ class MapEditorViewportWindow : public OSWindow
 protected:
 	/** Pointer to the GLFW window */
 	GLFWwindow* m_glfwWin;
+	/** Custom user data for the GLFW window */
+	MapEditorViewportWindowUserData* m_winUserDat;
 	/** Handle to the window */
 	HWND m_hWin;
 
@@ -48,6 +67,7 @@ public:
 	void getMouseButtonState(uint8& mouseButtons) const;
 
 
+public:
 	// Inherited via OSWindow
 	static MapEditorViewportWindow* create(const Settings& s = Settings());
 
@@ -83,5 +103,7 @@ public:
 	virtual void getJoystickState(unsigned int stickNum, Array<float>& axis, Array<bool>& button) const override;
 	virtual String _clipboardText() const override;
 	virtual void _setClipboardText(const String& text) const override;
+	virtual bool requiresMainLoop() const override;
+	virtual void getOSEvents(G3D::Queue<GEvent>& events) override;
 };
 

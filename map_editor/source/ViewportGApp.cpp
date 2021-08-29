@@ -10,7 +10,7 @@
 
 
 ViewportGApp::ViewportGApp(HWND hAppWin, std::filesystem::path&& exePath, const ViewportGApp::Settings& settings) :
-    GApp(settings, (m_viewportWin = MapEditorViewportWindow::create(settings.window)), nullptr, true),
+    GApp(settings, (m_viewportWin = MapEditorViewportWindow::create(settings.window)), new RenderDevice{}, true),
     m_hAppWin{ hAppWin },
     m_scene{ nullptr },
     m_exePath{ exePath }
@@ -42,14 +42,17 @@ ViewportGApp::ViewportGApp(HWND hAppWin, std::filesystem::path&& exePath, const 
         SWP_NOZORDER
     );
 
-    // Make the viewport visible
-    m_viewportWin->show();
-
     // Update the viewport window
     assert(UpdateWindow(m_viewportWin->getWin32Handle()));
 
     // Make sure the viewport window is the one g3d renders to
     renderDevice->setWindow(m_viewportWin);
+
+    // Make sure the viewport can capture input
+    m_viewportWin->setInputCapture(true);
+
+    // Make the viewport visible
+    m_viewportWin->show();
 }
 
 
@@ -148,18 +151,18 @@ void ViewportGApp::onRunViewport()
     beginRun();
     debugAssertGLOk();
 
-    /*do
+    do
     {
         oneFrame();
-    } while (!m_endProgram);*/
+    } while (!m_endProgram);
 
     // Start running the viewport in a seperate thread
-    m_viewportThread = std::thread{[this]() {
+    /*m_viewportThread = std::thread{[this]() {
         do
         {
             oneFrame();
         } while (!m_endProgram);
-    } };
+    } };*/
 
     // Call post-run code
     endRun();
@@ -269,6 +272,7 @@ bool ViewportGApp::onEvent(const GEvent& event)
     {
     case GEventType::VIDEO_RESIZE:
         onResizeWindow(event);
+        break;
     }
 
     // If you need to track individual UI events, manage them here.

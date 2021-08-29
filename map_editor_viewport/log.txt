@@ -1,0 +1,16 @@
+Application Log
+Start: Sat Aug 28 02:59:27 2021
+
+Initializing System::findDataFile took 0.003704s
+WARNING: AudioDevice is not enabled. Set G3DSpecification::audio = true before invoking initGLG3D() to enable audio.
+
+**************************
+
+Assertion Failure - map_editor_viewport.exe
+Debug assertion failure
+
+Expression: wcstombs(exePathBuffer, exePathWBuffer, sizeof(exePathWBuffer)) != 0
+D:\Dev\hitman3\RPKG-TOOL\map_editor_viewport\main_viewport.cpp:69
+
+Last Error (0x000000CB): T
+

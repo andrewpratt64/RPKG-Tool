@@ -117,6 +117,7 @@ copy /v /y $(OutDir)$(TargetName)$(TargetExt) $(MSBuildProjectDirectory)\$(Targe
   <ItemGroup>
     <ClInclude Include="source\MapEditorApp.h" />
     <ClInclude Include="source\MapEditorViewportWindow.h" />
+    <ClInclude Include="source\MapEditorViewportWindowUserData.h" />
     <ClInclude Include="source\str_maybe_unicode.h" />
     <ClInclude Include="source\ViewportGApp.h" />
   </ItemGroup>

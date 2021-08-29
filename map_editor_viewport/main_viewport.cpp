@@ -24,6 +24,7 @@
 //int APIENTRY WinMainViewport(HINSTANCE hInstance, HINSTANCE hInstancePrev, LPSTR cmdline, int cmdShow)
 int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hInstancePrev, PWSTR cmdline, int cmdShow)
 {
+    msgBox("jsdbvoudv");
     //  == App Settings ==
     ViewportGApp::Settings settings(NULL, NULL);
 
@@ -110,4 +111,8 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hInstancePrev, PWSTR cmdline,
 
     // Create and run the viewport app
     return ViewportGApp(hParent, std::move(exePath), settings).runViewport();
+    //ViewportGApp gApp{ hParent, std::move(exePath), settings };
+    //std::thread{ [&gApp]() { gApp.runViewport(); } }.join();
+
+    return EXIT_SUCCESS;
 }

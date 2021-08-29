@@ -24,6 +24,9 @@
     <ClInclude Include="source\str_maybe_unicode.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="source\MapEditorViewportWindowUserData.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="resources.rc" />

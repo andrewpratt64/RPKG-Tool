@@ -2,7 +2,15 @@
 #include "MapEditorViewportWindow.h"
 
 
-MapEditorViewportWindow::MapEditorViewportWindow(const OSWindow::Settings& settings)
+// GLFW callback forward declarations
+namespace MapEditorViewportWindowGLFWCallbacks
+{
+	void setMouseButton(GLFWwindow* window, int button, int action, int mods);
+}
+
+
+MapEditorViewportWindow::MapEditorViewportWindow(const OSWindow::Settings& settings) :
+	m_winUserDat{ new MapEditorViewportWindowUserData{} }
 {
 	// Initialize GLFW
 	debugAssert(glfwInit());
@@ -34,7 +42,15 @@ MapEditorViewportWindow::MapEditorViewportWindow(const OSWindow::Settings& setti
 	// Should probably be zero if using async rendering
 	glfwSwapInterval(0);
 
+	// Initialize OpenGL extensions
 	GLCaps::init(settings.api);
+
+	// Initialize custom user data for the GLFW window
+	m_winUserDat->m_owner = this;
+	glfwSetWindowUserPointer(m_glfwWin, m_winUserDat);
+
+	// Setup glfw callbacks
+	glfwSetMouseButtonCallback(m_glfwWin, MapEditorViewportWindowGLFWCallbacks::setMouseButton);
 }
 
 
@@ -42,6 +58,9 @@ MapEditorViewportWindow::~MapEditorViewportWindow()
 {
 	// Stop GLFW
 	glfwTerminate();
+
+	// Clean memory
+	delete m_winUserDat;
 }
 
 
@@ -257,12 +276,14 @@ void MapEditorViewportWindow::swapGLBuffers()
 
 void MapEditorViewportWindow::setRelativeMousePosition(double x, double y)
 {
+	msgBox("setRelativeMousePosition(double x, double y)");
 	glfwSetCursorPos(m_glfwWin, x, y);
 }
 
 
 void MapEditorViewportWindow::setRelativeMousePosition(const Vector2& p)
 {
+	msgBox("setRelativeMousePosition(const Vector2& p)");
 	glfwSetCursorPos(m_glfwWin, p.x, p.y);
 }
 
@@ -307,3 +328,79 @@ void MapEditorViewportWindow::_setClipboardText(const String& text) const
 	// Unimplemented
 	return;
 }
+
+
+bool MapEditorViewportWindow::requiresMainLoop() const
+{
+	return true;
+}
+
+
+void MapEditorViewportWindow::getOSEvents(G3D::Queue<GEvent>& events)
+{
+	glfwPollEvents();
+}
+
+
+#pragma region GLFW Callbacks
+
+void MapEditorViewportWindowGLFWCallbacks::setMouseButton(GLFWwindow* window, int button, int action, int mods)
+{
+	// Get the MapEditorViewportWindow that owns the GLFW window
+	void* windowUserDat{ glfwGetWindowUserPointer(window) };
+	debugAssert(windowUserDat != nullptr);
+	auto* windowOwner{ reinterpret_cast<MapEditorViewportWindowUserData*>(windowUserDat)->m_owner };
+	debugAssert(windowOwner != nullptr);
+
+	// Create a new G3D event object
+	GEvent e{};
+
+	// Determine what mouse button was set
+	//	(GLFW uses 1 for right click and 2 for middle click,
+	//	G3D uses 2 for right click and 1 for middle click)
+	if (button == GLFW_MOUSE_BUTTON_RIGHT)
+		e.button.button = 2;
+	else if (button == GLFW_MOUSE_BUTTON_MIDDLE)
+		e.button.button = 1;
+	else
+		e.button.button = button;
+
+	// Determine mouse location
+	double mouseX, mouseY;
+	glfwGetCursorPos(window, &mouseX, &mouseY);
+	e.button.x = static_cast<int>(mouseX);
+	e.button.y = static_cast<int>(mouseY);
+
+	// Determine if the control key is held down
+	e.button.controlKeyIsDown = mods & GLFW_MOD_CONTROL;
+
+	// Determine if the button is being pushed down or being released
+	if (action == GLFW_RELEASE)
+	{
+		e.type = GEventType::MOUSE_BUTTON_UP;
+		e.button.state = GButtonState::RELEASED;
+	}
+	else if (action == GLFW_PRESS)
+	{
+		e.type = GEventType::MOUSE_BUTTON_DOWN;
+		e.button.state = GButtonState::PRESSED;
+	}
+	else
+	{
+		// Taken from G3D::GLFWWindow::mouseButtonCallback
+		alwaysAssertM(false, format("GLFUnknown Mouse action (%d) taken with button %d", action, button));
+	}
+
+	// Fire the G3D event
+	windowOwner->fireEvent(e);
+
+	// Determine if this event was a click, and fire again if it was
+	if (e.type == GEventType::MOUSE_BUTTON_UP)
+	{
+		e.type = GEventType::MOUSE_BUTTON_CLICK;
+		e.button.numClicks = 1;
+		windowOwner->fireEvent(e);
+	}
+}
+
+#pragma endregion

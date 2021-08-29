@@ -82,6 +82,7 @@ namespace MapEditor
          *
          * @return Exit code
          */
+        // TODO: Handle child process crashes
         WPARAM run();
 
         /**
